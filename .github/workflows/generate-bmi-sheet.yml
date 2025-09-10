@@ -1,0 +1,48 @@
+name: Generate BMI Sheet for Release
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  generate-bmi-sheet:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Generate BMI Excel sheet
+      run: |
+        python generate_bmi_sheet.py
+        
+    - name: Upload Excel file as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: business-model-innovation-excel
+        path: business-model-innovation.xlsx
+        
+    - name: Attach to release (if release event)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./business-model-innovation.xlsx
+        asset_name: business-model-innovation.xlsx
+        asset_content_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
